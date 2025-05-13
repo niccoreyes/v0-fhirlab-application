@@ -110,29 +110,42 @@ export function TerminologySearch({
                   {searchTerm.length < 2 ? "Type at least 2 characters to search" : "No results found"}
                 </CommandEmpty>
                 <CommandGroup>
-                  {results.map((item) => (
-                    <CommandItem
-                      key={`${item.system}-${item.code}`}
-                      value={`${item.system}-${item.code}`}
-                      onSelect={() => {
-                        onSelect(item)
-                        setOpen(false)
-                      }}
-                    >
-                      <Check
-                        className={cn(
-                          "mr-2 h-4 w-4",
-                          value?.code === item.code && value?.system === item.system ? "opacity-100" : "opacity-0",
-                        )}
-                      />
-                      <div className="flex flex-col">
-                        <span>{item.display}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {item.code} ({item.system.split("/").pop()})
-                        </span>
-                      </div>
-                    </CommandItem>
-                  ))}
+                  {results.map((item) => {
+                    console.log("Rendering CommandItem:", {
+                      value: item.value,
+                      key: `${item.system}-${item.code}`,
+                      display: item.display,
+                      code: item.code,
+                      system: item.system,
+                    });
+                    return (
+                      <CommandItem
+                        key={`${item.system}-${item.code}`}
+                        value={item.value || `${item.code}-${item.display}` || item.code}
+                        onMouseDown={() => {
+                          console.log("CommandItem onMouseDown for:", item);
+                        }}
+                        onSelect={() => {
+                          console.log("TerminologySearch onSelect called with:", item);
+                          onSelect(item)
+                          setOpen(false)
+                        }}
+                      >
+                        <Check
+                          className={cn(
+                            "mr-2 h-4 w-4",
+                            value?.code === item.code && value?.system === item.system ? "opacity-100" : "opacity-0",
+                          )}
+                        />
+                        <div className="flex flex-col">
+                          <span>{item.display}</span>
+                          <span className="text-xs text-muted-foreground">
+                            {item.code} ({item.system.split("/").pop()})
+                          </span>
+                        </div>
+                      </CommandItem>
+                    );
+                  })}
                 </CommandGroup>
               </CommandList>
             )}

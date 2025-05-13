@@ -3,7 +3,7 @@
 const TERMINOLOGY_SERVER_URL = "https://tx.fhirlab.net/fhir"
 
 // SNOMED CT ValueSet URI - specific version as requested
-const SNOMED_CT_VALUESET_URI = "http://snomed.info/sct/999991001000101/version/20240701?fhir_vs"
+const SNOMED_CT_VALUESET_URI = "http://hl7.org/fhir/ValueSet/diagnostic-based-on-snomed"
 const SNOMED_CT_SYSTEM = "http://snomed.info/sct"
 
 // Types for terminology responses
@@ -14,6 +14,7 @@ export interface CodeableConcept {
 }
 
 export interface TerminologySearchResult {
+  value: string | undefined
   system: string
   code: string
   display: string
@@ -42,6 +43,9 @@ export async function searchTerms(
       filter: searchTerm,
     })
 
+    // LOG: Show which ValueSet and endpoint are being used for expansion
+    console.log("ValueSet expansion URL:", `${TERMINOLOGY_SERVER_URL}/ValueSet/$expand?${params.toString()}`)
+
     const response = await fetch(`${TERMINOLOGY_SERVER_URL}/ValueSet/$expand?${params.toString()}`)
 
     if (!response.ok) {
@@ -52,11 +56,15 @@ export async function searchTerms(
 
     // Extract concepts from the expansion
     if (data.expansion && data.expansion.contains) {
-      return data.expansion.contains.map((item: any) => ({
+      console.log("FHIR expansion raw contains:", data.expansion.contains);
+      const mapped = data.expansion.contains.map((item: any) => ({
         system: item.system,
         code: item.code,
         display: item.display,
-      }))
+        value: item.display || item.code || "", // for shadcn/ui Command compatibility
+      }));
+      console.log("Mapped TerminologySearchResult:", mapped);
+      return mapped;
     }
 
     return []
