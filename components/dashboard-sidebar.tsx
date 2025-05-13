@@ -26,6 +26,14 @@ export function DashboardSidebar() {
   const pathname = usePathname()
   const { close, isMobile } = useSidebarNew()
 
+  // Handle patient selection and navigation
+  const handlePatientSelect = (patientId: string) => {
+    router.push(`/dashboard/patient/${patientId}`)
+    if (isMobile) {
+      close()
+    }
+  }
+
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
@@ -60,13 +68,13 @@ export function DashboardSidebar() {
               <TabsTrigger value="unreviewed">Unreviewed</TabsTrigger>
             </TabsList>
             <TabsContent value="my-patients" className="mt-2">
-              <PatientList filter="my-patients" onPatientSelect={isMobile ? close : undefined} />
+              <PatientList filter="my-patients" onPatientSelect={close} />
             </TabsContent>
             <TabsContent value="high-risk" className="mt-2">
-              <PatientList filter="high-risk" onPatientSelect={isMobile ? close : undefined} />
+              <PatientList filter="high-risk" onPatientSelect={close} />
             </TabsContent>
             <TabsContent value="unreviewed" className="mt-2">
-              <PatientList filter="unreviewed" onPatientSelect={isMobile ? close : undefined} />
+              <PatientList filter="unreviewed" onPatientSelect={close} />
             </TabsContent>
           </Tabs>
         </SidebarGroup>
