@@ -18,52 +18,55 @@ interface ConditionFormProps {
 }
 
 export function ConditionForm({ patientId, onSubmit, onCancel }: ConditionFormProps) {
-  const [selectedCondition, setSelectedCondition] = useState<TerminologySearchResult | null>(null)
+  const [selectedConditions, setSelectedConditions] = useState<TerminologySearchResult[]>([])
   const [clinicalStatus, setClinicalStatus] = useState("active")
   const [notes, setNotes] = useState("")
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!selectedCondition) return
+    if (selectedConditions.length === 0) return
 
-    onSubmit({
-      code: {
-        coding: [
-          {
-            system: selectedCondition.system,
-            code: selectedCondition.code,
-            display: selectedCondition.display,
-          },
-        ],
-        text: selectedCondition.display,
-      },
-      clinicalStatus: {
-        coding: [
-          {
-            system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
-            code: clinicalStatus,
-            display:
-              clinicalStatus === "active"
-                ? "Active"
-                : clinicalStatus === "recurrence"
-                  ? "Recurrence"
-                  : clinicalStatus === "relapse"
-                    ? "Relapse"
-                    : clinicalStatus === "inactive"
-                      ? "Inactive"
-                      : clinicalStatus === "remission"
-                        ? "Remission"
-                        : clinicalStatus === "resolved"
-                          ? "Resolved"
-                          : "Unknown",
-          },
-        ],
-      },
-      subject: {
-        reference: `Patient/${patientId}`,
-      },
-      note: notes ? [{ text: notes }] : undefined,
+    // Submit all selected conditions
+    selectedConditions.forEach((condition) => {
+      onSubmit({
+        code: {
+          coding: [
+            {
+              system: condition.system,
+              code: condition.code,
+              display: condition.display,
+            },
+          ],
+          text: condition.display,
+        },
+        clinicalStatus: {
+          coding: [
+            {
+              system: "http://terminology.hl7.org/CodeSystem/condition-clinical",
+              code: clinicalStatus,
+              display:
+                clinicalStatus === "active"
+                  ? "Active"
+                  : clinicalStatus === "recurrence"
+                    ? "Recurrence"
+                    : clinicalStatus === "relapse"
+                      ? "Relapse"
+                      : clinicalStatus === "inactive"
+                        ? "Inactive"
+                        : clinicalStatus === "remission"
+                          ? "Remission"
+                          : clinicalStatus === "resolved"
+                            ? "Resolved"
+                            : "Unknown",
+            },
+          ],
+        },
+        subject: {
+          reference: `Patient/${patientId}`,
+        },
+        note: notes ? [{ text: notes }] : undefined,
+      })
     })
   }
 
@@ -80,14 +83,40 @@ export function ConditionForm({ patientId, onSubmit, onCancel }: ConditionFormPr
               placeholder="Search for conditions (e.g., diabetes, hypertension)..."
               searchFunction={searchSnomedTerms}
               validateFunction={validateSnomedCode}
-              onSelect={setSelectedCondition}
-              value={selectedCondition}
+              onSelect={(item) => {
+                setSelectedConditions((prev) => {
+                  // Prevent duplicates
+                  if (prev.some((c) => c.code === item.code && c.system === item.system)) return prev
+                  return [...prev, item]
+                })
+              }}
               required
             />
           </div>
 
-          {selectedCondition && (
+          {selectedConditions.length > 0 && (
             <>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {selectedConditions.map((condition) => (
+                  <span
+                    key={condition.code}
+                    className="inline-flex items-center px-2 py-1 bg-gray-200 rounded text-xs"
+                  >
+                    {condition.display}
+                    <button
+                      type="button"
+                      className="ml-1 text-red-500 hover:text-red-700"
+                      onClick={() =>
+                        setSelectedConditions((prev) =>
+                          prev.filter((c) => c.code !== condition.code || c.system !== condition.system)
+                        )
+                      }
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="clinical-status">Clinical Status</Label>
                 <Select value={clinicalStatus} onValueChange={setClinicalStatus}>
@@ -121,7 +150,7 @@ export function ConditionForm({ patientId, onSubmit, onCancel }: ConditionFormPr
           <Button type="button" variant="outline" onClick={onCancel}>
             Cancel
           </Button>
-          <Button type="submit" disabled={!selectedCondition}>
+          <Button type="submit" disabled={selectedConditions.length === 0}>
             Record
           </Button>
         </CardFooter>

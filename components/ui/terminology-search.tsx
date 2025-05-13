@@ -98,7 +98,13 @@ export function TerminologySearch({
         </PopoverTrigger>
         <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
           <Command>
-            <CommandInput placeholder={placeholder} value={searchTerm} onValueChange={setSearchTerm} className="h-9" />
+            <CommandInput
+              placeholder={placeholder}
+              value={searchTerm}
+              onValueChange={setSearchTerm}
+              className="h-9"
+              autoFocus
+            />
             {loading && (
               <div className="flex items-center justify-center py-6">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -111,32 +117,23 @@ export function TerminologySearch({
                 </CommandEmpty>
                 <CommandGroup>
                   {results.map((item) => {
-                    console.log("Rendering CommandItem:", {
-                      value: item.value,
-                      key: `${item.system}-${item.code}`,
-                      display: item.display,
-                      code: item.code,
-                      system: item.system,
-                    });
+                    // console.log("Rendering CommandItem:", {
+                    //   value: item.value,
+                    //   key: `${item.system}-${item.code}`,
+                    //   display: item.display,
+                    //   code: item.code,
+                    //   system: item.system,
+                    // });
                     return (
                       <CommandItem
                         key={`${item.system}-${item.code}`}
                         value={item.value || `${item.code}-${item.display}` || item.code}
-                        onMouseDown={() => {
-                          console.log("CommandItem onMouseDown for:", item);
-                        }}
                         onSelect={() => {
                           console.log("TerminologySearch onSelect called with:", item);
                           onSelect(item)
                           setOpen(false)
                         }}
                       >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            value?.code === item.code && value?.system === item.system ? "opacity-100" : "opacity-0",
-                          )}
-                        />
                         <div className="flex flex-col">
                           <span>{item.display}</span>
                           <span className="text-xs text-muted-foreground">
