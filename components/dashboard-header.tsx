@@ -19,6 +19,7 @@ import { useRouter } from "next/navigation"
 
 export function DashboardHeader() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [showSearch, setShowSearch] = useState(false)
   const router = useRouter()
 
   const handleSearch = (e: React.FormEvent) => {
@@ -35,7 +36,20 @@ export function DashboardHeader() {
     <header className="border-b bg-white px-4 py-2 flex items-center justify-between">
       <div className="flex items-center gap-2">
         <SidebarTrigger className="md:hidden" />
-        <form onSubmit={handleSearch} className="relative w-full max-w-md">
+
+        {/* Mobile search button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden"
+          onClick={() => setShowSearch(!showSearch)}
+          aria-label="Search"
+        >
+          <Search className="h-5 w-5" />
+        </Button>
+
+        {/* Desktop search form */}
+        <form onSubmit={handleSearch} className="relative hidden md:block w-full max-w-md">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
           <Input
             type="search"
@@ -46,6 +60,24 @@ export function DashboardHeader() {
           />
         </form>
       </div>
+
+      {/* Mobile search form (expandable) */}
+      {showSearch && (
+        <div className="absolute top-14 left-0 right-0 z-10 bg-white p-2 border-b md:hidden">
+          <form onSubmit={handleSearch} className="relative w-full">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              type="search"
+              placeholder="Search patients..."
+              className="pl-8 w-full"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              autoFocus
+            />
+          </form>
+        </div>
+      )}
+
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="icon" aria-label="Notifications">
           <Bell className="h-5 w-5" />
@@ -63,6 +95,7 @@ export function DashboardHeader() {
             <DropdownMenuSeparator />
             <DropdownMenuItem>Profile</DropdownMenuItem>
             <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem>Install App</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

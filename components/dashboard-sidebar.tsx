@@ -1,6 +1,6 @@
 "use client"
 import { useRouter, usePathname } from "next/navigation"
-import { Users, AlertTriangle, FileText, Plus } from "lucide-react"
+import { Users, AlertTriangle, FileText, Plus, X } from "lucide-react"
 import {
   Sidebar,
   SidebarContent,
@@ -16,6 +16,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { PatientList } from "@/components/patient-list"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useSidebarNew } from "@/components/ui/sidebar"
 
 // Import the DEFAULT_PRACTITIONER
 import { DEFAULT_PRACTITIONER } from "@/lib/practitioner-api"
@@ -23,16 +24,22 @@ import { DEFAULT_PRACTITIONER } from "@/lib/practitioner-api"
 export function DashboardSidebar() {
   const router = useRouter()
   const pathname = usePathname()
+  const { isOpen, close } = useSidebarNew()
 
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">HealthChat</h1>
-          <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/new-patient")}>
-            <Plus className="h-4 w-4 mr-1" />
-            New
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/new-patient")}>
+              <Plus className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">New</span>
+            </Button>
+            <Button variant="ghost" size="sm" className="md:hidden" onClick={close}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       </SidebarHeader>
       <SidebarContent>

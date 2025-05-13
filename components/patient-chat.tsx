@@ -32,6 +32,7 @@ import { MedicationOrderForm } from "@/components/medication-order-form"
 import { AppointmentForm } from "@/components/appointment-form"
 import { ConditionForm } from "@/components/condition-form"
 import { fetchPractitionerDetails, DEFAULT_PRACTITIONER, type PractitionerDetails } from "@/lib/practitioner-api"
+import { Sheet, SheetContent } from "@/components/ui/sheet"
 
 interface PatientChatProps {
   patientId: string
@@ -49,6 +50,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
   const [activeForm, setActiveForm] = useState<string | null>(null)
   const [userRole, setUserRole] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState("chat")
+  const [isMobileFormOpen, setIsMobileFormOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const { toast } = useToast()
   const router = useRouter()
@@ -84,21 +86,27 @@ export function PatientChat({ patientId }: PatientChatProps) {
 
         // Fetch medications
         const medicationsData = await fetchPatientMedications(patientId)
+
         setMedications(medicationsData)
 
-        // Convert communications to chat messages
-        const chatMessages = communications.map((comm) => ({
-          id: comm.id,
-          text: comm.payload?.[0]?.contentString || "",
-          sender: comm.sender?.reference?.includes("Practitioner") ? "practitioner" : "patient",
-          timestamp: comm.sent,
-          type: "text",
-        }))
+        // Create a unified timeline of all events
+        const allEvents: ChatMessage[] = []
+
+        // Add communications as chat messages
+        communications.forEach((comm) => {
+          allEvents.push({
+            id: comm.id,
+            text: comm.payload?.[0]?.contentString || "",
+            sender: comm.sender?.reference?.includes("Practitioner") ? "practitioner" : "patient",
+            timestamp: comm.sent,
+            type: "text",
+          })
+        })
 
         // Add observations as system messages
         observationsData.forEach((obs) => {
           if (obs.category?.[0]?.coding?.[0]?.code === "vital-signs") {
-            chatMessages.push({
+            allEvents.push({
               id: obs.id,
               text: `${obs.code?.coding?.[0]?.display || "Observation"}: ${obs.valueQuantity?.value} ${
                 obs.valueQuantity?.unit
@@ -111,10 +119,38 @@ export function PatientChat({ patientId }: PatientChatProps) {
           }
         })
 
-        // Sort messages by timestamp
-        chatMessages.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+        // Add conditions as system messages
+        conditionsData.forEach((condition) => {
+          allEvents.push({
+            id: condition.id,
+            text: `Condition recorded: ${condition.code?.coding?.[0]?.display || "Unknown condition"} (${
+              condition.clinicalStatus?.coding?.[0]?.display || "Unknown status"
+            })`,
+            sender: "system",
+            timestamp: condition.onsetDateTime || new Date().toISOString(),
+            type: "condition",
+            data: condition,
+          })
+        })
 
-        setMessages(chatMessages)
+        // Add medications as system messages
+        medicationsData.forEach((medication) => {
+          allEvents.push({
+            id: medication.id,
+            text: `Medication ordered: ${medication.medicationCodeableConcept?.coding?.[0]?.display || "Unknown medication"}`,
+            sender: "system",
+            timestamp: new Date().toISOString(), // Use current date if no specific date is available
+            type: "medication",
+            data: medication,
+          })
+        })
+
+        // Sort all events chronologically by timestamp
+        allEvents.sort((a, b) => {
+          return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+        })
+
+        setMessages(allEvents)
       } catch (error) {
         console.error("Error loading patient data:", error)
         toast({
@@ -210,7 +246,6 @@ export function PatientChat({ patientId }: PatientChatProps) {
     }
   }
 
-  // Updated to use the new terminology-based vital sign form
   const handleRecordVitalSign = async (vitalData: any) => {
     try {
       const observationResource = {
@@ -260,6 +295,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
       setMessages((prev) => [...prev, newObservationMessage])
       setObservations((prev) => [...prev, response])
       setActiveForm(null)
+      setIsMobileFormOpen(false)
 
       toast({
         title: "Success",
@@ -275,7 +311,6 @@ export function PatientChat({ patientId }: PatientChatProps) {
     }
   }
 
-  // Updated to use the new terminology-based medication form
   const handleOrderMedication = async (medicationData: any) => {
     try {
       const medicationRequestResource = {
@@ -330,6 +365,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
 
       setMessages((prev) => [...prev, newMedicationMessage])
       setActiveForm(null)
+      setIsMobileFormOpen(false)
 
       toast({
         title: "Success",
@@ -345,7 +381,6 @@ export function PatientChat({ patientId }: PatientChatProps) {
     }
   }
 
-  // New function to handle recording conditions
   const handleRecordCondition = async (conditionData: any) => {
     try {
       // Create the condition resource
@@ -353,6 +388,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
         resourceType: "Condition",
         ...conditionData,
         recordedDate: new Date().toISOString(),
+        onsetDateTime: new Date().toISOString(), // Add this to ensure chronological sorting
         recorder: { reference: `Practitioner/${practitioner.id}` },
       }
 
@@ -377,14 +413,19 @@ export function PatientChat({ patientId }: PatientChatProps) {
         id: result.id,
         text: `Condition recorded: ${conditionData.code.coding[0].display} (${conditionData.clinicalStatus.coding[0].display})`,
         sender: "system",
-        timestamp: new Date().toISOString(),
+        timestamp: conditionResource.onsetDateTime,
         type: "condition",
         data: result,
       }
 
-      setMessages((prev) => [...prev, newConditionMessage])
+      setMessages((prev) =>
+        [...prev.filter((msg) => msg.id !== result.id), newConditionMessage].sort(
+          (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
+        ),
+      )
       setConditions((prev) => [...prev, result])
       setActiveForm(null)
+      setIsMobileFormOpen(false)
 
       toast({
         title: "Success",
@@ -437,6 +478,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
 
       setMessages((prev) => [...prev, newAppointmentMessage])
       setActiveForm(null)
+      setIsMobileFormOpen(false)
 
       toast({
         title: "Success",
@@ -449,6 +491,55 @@ export function PatientChat({ patientId }: PatientChatProps) {
         description: "Failed to schedule appointment. Please try again.",
         variant: "destructive",
       })
+    }
+  }
+
+  // Function to render the appropriate form based on activeForm
+  const renderActiveForm = () => {
+    switch (activeForm) {
+      case "vital-sign":
+        return (
+          <VitalSignForm
+            onSubmit={handleRecordVitalSign}
+            onCancel={() => {
+              setActiveForm(null)
+              setIsMobileFormOpen(false)
+            }}
+          />
+        )
+      case "medication":
+        return (
+          <MedicationOrderForm
+            onSubmit={handleOrderMedication}
+            onCancel={() => {
+              setActiveForm(null)
+              setIsMobileFormOpen(false)
+            }}
+          />
+        )
+      case "condition":
+        return (
+          <ConditionForm
+            patientId={patientId}
+            onSubmit={handleRecordCondition}
+            onCancel={() => {
+              setActiveForm(null)
+              setIsMobileFormOpen(false)
+            }}
+          />
+        )
+      case "appointment":
+        return (
+          <AppointmentForm
+            onSubmit={handleScheduleAppointment}
+            onCancel={() => {
+              setActiveForm(null)
+              setIsMobileFormOpen(false)
+            }}
+          />
+        )
+      default:
+        return null
     }
   }
 
@@ -505,7 +596,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
             >
               {message.type === "text" ? (
                 <div
-                  className={`max-w-[70%] rounded-lg p-3 ${
+                  className={`max-w-[85%] md:max-w-[70%] rounded-lg p-3 ${
                     message.sender === "patient"
                       ? "bg-gray-100 text-gray-900"
                       : message.sender === "practitioner"
@@ -518,11 +609,11 @@ export function PatientChat({ patientId }: PatientChatProps) {
                       Dr. {practitioner.name[0].given[0]} {practitioner.name[0].family}
                     </p>
                   )}
-                  <p>{message.text}</p>
+                  <p className="break-words">{message.text}</p>
                   <p className="text-xs mt-1 opacity-70">{format(new Date(message.timestamp), "h:mm a")}</p>
                 </div>
               ) : message.type === "observation" ? (
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Activity className="h-4 w-4 mr-1" />
@@ -537,7 +628,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   </CardContent>
                 </Card>
               ) : message.type === "medication" ? (
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Pill className="h-4 w-4 mr-1" />
@@ -552,7 +643,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   </CardContent>
                 </Card>
               ) : message.type === "condition" ? (
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Stethoscope className="h-4 w-4 mr-1" />
@@ -567,7 +658,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   </CardContent>
                 </Card>
               ) : message.type === "appointment" ? (
-                <Card className="w-full max-w-md">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
@@ -588,54 +679,69 @@ export function PatientChat({ patientId }: PatientChatProps) {
         </div>
       </ScrollArea>
 
-      {activeForm === "vital-sign" && (
-        <div className="p-4 border-t bg-gray-50">
-          <VitalSignForm onSubmit={handleRecordVitalSign} onCancel={() => setActiveForm(null)} />
-        </div>
-      )}
+      {/* Desktop form display */}
+      <div className="hidden md:block">
+        {activeForm && <div className="p-4 border-t bg-gray-50">{renderActiveForm()}</div>}
+      </div>
 
-      {activeForm === "medication" && (
-        <div className="p-4 border-t bg-gray-50">
-          <MedicationOrderForm onSubmit={handleOrderMedication} onCancel={() => setActiveForm(null)} />
-        </div>
-      )}
-
-      {activeForm === "condition" && (
-        <div className="p-4 border-t bg-gray-50">
-          <ConditionForm patientId={patientId} onSubmit={handleRecordCondition} onCancel={() => setActiveForm(null)} />
-        </div>
-      )}
-
-      {activeForm === "appointment" && (
-        <div className="p-4 border-t bg-gray-50">
-          <AppointmentForm onSubmit={handleScheduleAppointment} onCancel={() => setActiveForm(null)} />
-        </div>
-      )}
+      {/* Mobile form display using Sheet */}
+      <Sheet open={isMobileFormOpen} onOpenChange={setIsMobileFormOpen}>
+        <SheetContent side="bottom" className="h-[80vh] md:hidden">
+          <div className="h-full overflow-auto">{renderActiveForm()}</div>
+        </SheetContent>
+      </Sheet>
 
       <div className="p-4 border-t bg-white">
         {activeForm === null && (
           <>
-            <div className="flex gap-2 mb-2 overflow-x-auto pb-2">
-              <Button variant="outline" size="sm" className="flex-shrink-0" onClick={() => setActiveForm("vital-sign")}>
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 touch-pan-x">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                onClick={() => {
+                  setActiveForm("vital-sign")
+                  setIsMobileFormOpen(true)
+                }}
+              >
                 <Activity className="h-4 w-4 mr-1" />
-                Record Vital
-              </Button>
-              <Button variant="outline" size="sm" className="flex-shrink-0" onClick={() => setActiveForm("medication")}>
-                <Pill className="h-4 w-4 mr-1" />
-                Order Medication
-              </Button>
-              <Button variant="outline" size="sm" className="flex-shrink-0" onClick={() => setActiveForm("condition")}>
-                <Stethoscope className="h-4 w-4 mr-1" />
-                Record Condition
+                <span className="whitespace-nowrap">Record Vital</span>
               </Button>
               <Button
                 variant="outline"
                 size="sm"
                 className="flex-shrink-0"
-                onClick={() => setActiveForm("appointment")}
+                onClick={() => {
+                  setActiveForm("medication")
+                  setIsMobileFormOpen(true)
+                }}
+              >
+                <Pill className="h-4 w-4 mr-1" />
+                <span className="whitespace-nowrap">Order Medication</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                onClick={() => {
+                  setActiveForm("condition")
+                  setIsMobileFormOpen(true)
+                }}
+              >
+                <Stethoscope className="h-4 w-4 mr-1" />
+                <span className="whitespace-nowrap">Record Condition</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-shrink-0"
+                onClick={() => {
+                  setActiveForm("appointment")
+                  setIsMobileFormOpen(true)
+                }}
               >
                 <Calendar className="h-4 w-4 mr-1" />
-                Schedule Appointment
+                <span className="whitespace-nowrap">Schedule Appointment</span>
               </Button>
             </div>
             <form onSubmit={handleSendMessage} className="flex gap-2">
@@ -670,7 +776,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
             <CardTitle className="text-lg">Patient Information</CardTitle>
           </CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-4">
+            <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <dt className="text-sm font-medium text-gray-500">Name</dt>
                 <dd>
@@ -736,6 +842,11 @@ export function PatientChat({ patientId }: PatientChatProps) {
                     <p className="text-sm text-gray-600">
                       Status: {condition.clinicalStatus?.coding[0]?.display || "Unknown"}
                     </p>
+                    {condition.onsetDateTime && (
+                      <p className="text-xs text-gray-500">
+                        Onset: {format(new Date(condition.onsetDateTime), "MMM d, yyyy")}
+                      </p>
+                    )}
                   </li>
                 ))}
               </ul>
