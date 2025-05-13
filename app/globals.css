@@ -134,3 +134,36 @@
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* Fix for overlapping content */
+.radix-sheet-content {
+  z-index: 100 !important;
+}
+
+/* Ensure content doesn't overlap with fixed headers */
+.fixed-header-padding {
+  padding-top: 60px; /* Adjust based on your header height */
+}
+
+/* Prevent text from overflowing in chat bubbles */
+.chat-bubble {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure proper spacing in mobile views */
+@media (max-width: 768px) {
+  .mobile-spacing {
+    margin: 0.5rem 0;
+  }
+
+  .mobile-padding {
+    padding: 0.5rem;
+  }
+
+  /* Ensure buttons are large enough for touch targets */
+  .mobile-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}

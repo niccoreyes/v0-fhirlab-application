@@ -15,12 +15,12 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { createContext, useContext, useState } from "react"
+import { createContext, useContext, useState, useEffect } from "react"
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
 const SIDEBAR_WIDTH = "16rem"
-const SIDEBAR_WIDTH_MOBILE = "18rem"
+const SIDEBAR_WIDTH_MOBILE = "100%"
 const SIDEBAR_WIDTH_ICON = "3rem"
 const SIDEBAR_KEYBOARD_SHORTCUT = "b"
 
@@ -30,140 +30,76 @@ type SidebarContextType = {
   toggle: () => void
   close: () => void
   open: () => void
+  isMobile: boolean
 }
 
-const SidebarContextNew = createContext<SidebarContextType | undefined>(undefined)
+const SidebarContext = createContext<SidebarContextType | undefined>(undefined)
 
 export function SidebarProvider({ children }: { children: React.ReactNode }) {
-  const [isOpen, setIsOpen] = useState(true)
+  const [isOpen, setIsOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Check if we're on mobile when component mounts
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+      // On larger screens, default to open
+      if (window.innerWidth >= 768) {
+        setIsOpen(true)
+      } else {
+        setIsOpen(false)
+      }
+    }
+
+    // Initial check
+    checkMobile()
+
+    // Add resize listener
+    window.addEventListener("resize", checkMobile)
+
+    // Cleanup
+    return () => window.removeEventListener("resize", checkMobile)
+  }, [])
 
   const toggle = () => setIsOpen((prev) => !prev)
   const close = () => setIsOpen(false)
   const open = () => setIsOpen(true)
 
-  return <SidebarContextNew.Provider value={{ isOpen, toggle, close, open }}>{children}</SidebarContextNew.Provider>
+  return <SidebarContext.Provider value={{ isOpen, toggle, close, open, isMobile }}>{children}</SidebarContext.Provider>
 }
 
 export function useSidebarNew() {
-  const context = useContext(SidebarContextNew)
+  const context = useContext(SidebarContext)
   if (context === undefined) {
     throw new Error("useSidebar must be used within a SidebarProvider")
   }
   return context
 }
 
-type SidebarContext = {
-  state: "expanded" | "collapsed"
-  open: boolean
-  setOpen: (open: boolean) => void
-  openMobile: boolean
-  setOpenMobile: (open: boolean) => void
-  isMobile: boolean
-  toggleSidebar: () => void
-}
-
-const SidebarContext = React.createContext<SidebarContext | null>(null)
-
-function useSidebar() {
-  const context = React.useContext(SidebarContext)
-  if (!context) {
-    throw new Error("useSidebar must be used within a SidebarProvider.")
-  }
-
-  return context
-}
-
-const SidebarProviderOld = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div"> & {
-    defaultOpen?: boolean
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-  }
->(({ defaultOpen = true, open: openProp, onOpenChange: setOpenProp, className, style, children, ...props }, ref) => {
-  const isMobile = useIsMobile()
-  const [openMobile, setOpenMobile] = React.useState(false)
-
-  // This is the internal state of the sidebar.
-  // We use openProp and setOpenProp for control from outside the component.
-  const [_open, _setOpen] = React.useState(defaultOpen)
-  const open = openProp ?? _open
-  const setOpen = React.useCallback(
-    (value: boolean | ((value: boolean) => boolean)) => {
-      const openState = typeof value === "function" ? value(open) : value
-      if (setOpenProp) {
-        setOpenProp(openState)
-      } else {
-        _setOpen(openState)
-      }
-
-      // This sets the cookie to keep the sidebar state.
-      document.cookie = `${SIDEBAR_COOKIE_NAME}=${openState}; path=/; max-age=${SIDEBAR_COOKIE_MAX_AGE}`
-    },
-    [setOpenProp, open],
-  )
-
-  // Helper to toggle the sidebar.
-  const toggleSidebar = React.useCallback(() => {
-    return isMobile ? setOpenMobile((open) => !open) : setOpen((open) => !open)
-  }, [isMobile, setOpen, setOpenMobile])
-
-  // Adds a keyboard shortcut to toggle the sidebar.
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === SIDEBAR_KEYBOARD_SHORTCUT && (event.metaKey || event.ctrlKey)) {
-        event.preventDefault()
-        toggleSidebar()
-      }
-    }
-
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
-  }, [toggleSidebar])
-
-  // We add a state so that we can do data-state="expanded" or "collapsed".
-  // This makes it easier to style the sidebar with Tailwind classes.
-  const state = open ? "expanded" : "collapsed"
-
-  const contextValue = React.useMemo<SidebarContext>(
-    () => ({
-      state,
-      open,
-      setOpen,
-      isMobile,
-      openMobile,
-      setOpenMobile,
-      toggleSidebar,
-    }),
-    [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
-  )
-
-  return (
-    <SidebarContext.Provider value={contextValue}>
-      <TooltipProvider delayDuration={0}>
-        <div
-          style={
-            {
-              "--sidebar-width": SIDEBAR_WIDTH,
-              "--sidebar-width-icon": SIDEBAR_WIDTH_ICON,
-              ...style,
-            } as React.CSSProperties
-          }
-          className={cn("group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar", className)}
-          ref={ref}
-          {...props}
-        >
-          {children}
-        </div>
-      </TooltipProvider>
-    </SidebarContext.Provider>
-  )
-})
-SidebarProviderOld.displayName = "SidebarProvider"
-
 export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  const { isOpen } = useSidebarNew()
+  const { isOpen, isMobile } = useSidebarNew()
 
+  // For mobile, use a Sheet component instead of a fixed sidebar
+  if (isMobile) {
+    return (
+      <Sheet
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            // This handles the case when the sheet is closed by clicking outside
+            const context = useSidebarNew()
+            context.close()
+          }
+        }}
+      >
+        <SheetContent side="left" className="p-0 w-[85%] max-w-[400px]" {...props}>
+          <div className={cn("h-full flex flex-col", className)}>{props.children}</div>
+        </SheetContent>
+      </Sheet>
+    )
+  }
+
+  // For desktop, use the regular sidebar
   return (
     <div
       className={cn(
@@ -173,6 +109,82 @@ export function Sidebar({ className, ...props }: React.HTMLAttributes<HTMLDivEle
       )}
       {...props}
     />
+  )
+}
+
+export function SidebarHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("border-b", className)} {...props} />
+}
+
+export function SidebarContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex-1 overflow-auto", className)} {...props} />
+}
+
+export function SidebarFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("border-t", className)} {...props} />
+}
+
+export function SidebarTrigger({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
+  const { toggle, isMobile } = useSidebarNew()
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className={cn(
+        "inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600",
+        className,
+      )}
+      aria-label="Toggle sidebar"
+      {...props}
+    >
+      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+      <span className="sr-only">Toggle sidebar</span>
+    </button>
+  )
+}
+
+// Export other sidebar components that were previously defined
+export { SidebarGroup, SidebarGroupLabel, SidebarGroupContent, SidebarMenu, SidebarMenuItem, SidebarMenuButton }
+
+// Old Sidebar implementation (collapsible)
+type SidebarState = "open" | "collapsed"
+
+type SidebarContextOldType = {
+  state: SidebarState
+  isMobile: boolean
+  openMobile: boolean
+  setOpenMobile: React.Dispatch<React.SetStateAction<boolean>>
+  toggleSidebar: () => void
+}
+
+const SidebarContextOld = createContext<SidebarContextOldType | null>(null)
+
+function useSidebar() {
+  const context = React.useContext(SidebarContextOld)
+
+  if (!context) {
+    throw new Error("useSidebar must be used within a SidebarProvider")
+  }
+
+  return context
+}
+
+const SidebarProviderOld = ({ children }: { children: React.ReactNode }) => {
+  const [state, setState] = React.useState<SidebarState>("open")
+  const [openMobile, setOpenMobile] = React.useState(false)
+  const isMobile = useIsMobile()
+
+  const toggleSidebar = React.useCallback(() => {
+    setState((prevState) => (prevState === "open" ? "collapsed" : "open"))
+  }, [])
+
+  return (
+    <SidebarContextOld.Provider value={{ state, isMobile, openMobile, setOpenMobile, toggleSidebar }}>
+      {children}
+    </SidebarContextOld.Provider>
   )
 }
 
@@ -263,39 +275,6 @@ const SidebarOld = React.forwardRef<
   )
 })
 SidebarOld.displayName = "Sidebar"
-
-export function SidebarHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b", className)} {...props} />
-}
-
-export function SidebarContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex-1 overflow-auto", className)} {...props} />
-}
-
-export function SidebarFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-t", className)} {...props} />
-}
-
-export function SidebarTrigger({ className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) {
-  const { toggle } = useSidebarNew()
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      className={cn(
-        "inline-flex items-center justify-center rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600",
-        className,
-      )}
-      {...props}
-    >
-      <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-      <span className="sr-only">Toggle sidebar</span>
-    </button>
-  )
-}
 
 const SidebarTriggerOld = React.forwardRef<React.ElementRef<typeof Button>, React.ComponentProps<typeof Button>>(
   ({ className, onClick, ...props }, ref) => {
@@ -598,10 +577,12 @@ const SidebarMenuButtonOld = React.forwardRef<
   }
 
   return (
-    <Tooltip>
-      <TooltipTrigger asChild>{button}</TooltipTrigger>
-      <TooltipContent side="right" align="center" hidden={state !== "collapsed" || isMobile} {...tooltip} />
-    </Tooltip>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>{button}</TooltipTrigger>
+        <TooltipContent side="right" align="center" hidden={state !== "collapsed" || isMobile} {...tooltip} />
+      </Tooltip>
+    </TooltipProvider>
   )
 })
 SidebarMenuButtonOld.displayName = "SidebarMenuButton"
@@ -780,10 +761,8 @@ const SidebarMenuSubButton = React.forwardRef<
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton"
 
 export {
-  SidebarOld,
   SidebarContentOld,
   SidebarFooterOld,
-  SidebarGroupOld,
   SidebarGroupAction,
   SidebarGroupContentOld,
   SidebarGroupLabelOld,

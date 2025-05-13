@@ -5,7 +5,17 @@ import type React from "react"
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { format } from "date-fns"
-import { Send, Calendar, FileText, Pill, Activity, AlertCircle, ChevronDown, Stethoscope } from "lucide-react"
+import {
+  Send,
+  Calendar,
+  FileText,
+  Pill,
+  Activity,
+  AlertCircle,
+  ChevronDown,
+  Stethoscope,
+  ArrowLeft,
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -14,6 +24,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useToast } from "@/components/ui/use-toast"
+import { useIsMobile } from "@/hooks/use-mobile"
 import {
   fetchPatientDetails,
   fetchPatientCommunications,
@@ -55,6 +66,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
   const { toast } = useToast()
   const router = useRouter()
   const [practitioner, setPractitioner] = useState<PractitionerDetails>(DEFAULT_PRACTITIONER)
+  const isMobile = useIsMobile()
 
   useEffect(() => {
     setUserRole(localStorage.getItem("userRole"))
@@ -543,6 +555,8 @@ export function PatientChat({ patientId }: PatientChatProps) {
     }
   }
 
+  // Implementation of the record functions (handleRecordVitalSign, handleOrderMedication, etc.) remains the same
+
   if (loading) {
     return (
       <div className="h-full flex flex-col">
@@ -701,7 +715,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                 className="flex-shrink-0"
                 onClick={() => {
                   setActiveForm("vital-sign")
-                  setIsMobileFormOpen(true)
+                  setIsMobileFormOpen(isMobile)
                 }}
               >
                 <Activity className="h-4 w-4 mr-1" />
@@ -713,7 +727,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                 className="flex-shrink-0"
                 onClick={() => {
                   setActiveForm("medication")
-                  setIsMobileFormOpen(true)
+                  setIsMobileFormOpen(isMobile)
                 }}
               >
                 <Pill className="h-4 w-4 mr-1" />
@@ -725,7 +739,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                 className="flex-shrink-0"
                 onClick={() => {
                   setActiveForm("condition")
-                  setIsMobileFormOpen(true)
+                  setIsMobileFormOpen(isMobile)
                 }}
               >
                 <Stethoscope className="h-4 w-4 mr-1" />
@@ -737,7 +751,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                 className="flex-shrink-0"
                 onClick={() => {
                   setActiveForm("appointment")
-                  setIsMobileFormOpen(true)
+                  setIsMobileFormOpen(isMobile)
                 }}
               >
                 <Calendar className="h-4 w-4 mr-1" />
@@ -921,8 +935,13 @@ export function PatientChat({ patientId }: PatientChatProps) {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b bg-white p-4 flex items-center justify-between">
+      <div className="border-b bg-white p-4 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
+          {isMobile && (
+            <Button variant="ghost" size="sm" className="mr-1" onClick={() => router.push("/dashboard")}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+          )}
           <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
             {patient.name.given[0]?.[0] || ""}
             {patient.name.family?.[0] || ""}

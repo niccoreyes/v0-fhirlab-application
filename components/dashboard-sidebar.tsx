@@ -12,11 +12,11 @@ import {
   SidebarGroupLabel,
   SidebarGroup,
   SidebarGroupContent,
+  useSidebarNew,
 } from "@/components/ui/sidebar"
 import { Button } from "@/components/ui/button"
 import { PatientList } from "@/components/patient-list"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useSidebarNew } from "@/components/ui/sidebar"
 
 // Import the DEFAULT_PRACTITIONER
 import { DEFAULT_PRACTITIONER } from "@/lib/practitioner-api"
@@ -24,7 +24,7 @@ import { DEFAULT_PRACTITIONER } from "@/lib/practitioner-api"
 export function DashboardSidebar() {
   const router = useRouter()
   const pathname = usePathname()
-  const { isOpen, close } = useSidebarNew()
+  const { close, isMobile } = useSidebarNew()
 
   return (
     <Sidebar>
@@ -32,13 +32,22 @@ export function DashboardSidebar() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-bold">HealthChat</h1>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => router.push("/dashboard/new-patient")}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                router.push("/dashboard/new-patient")
+                if (isMobile) close()
+              }}
+            >
               <Plus className="h-4 w-4 mr-1" />
               <span className="hidden sm:inline">New</span>
             </Button>
-            <Button variant="ghost" size="sm" className="md:hidden" onClick={close}>
-              <X className="h-4 w-4" />
-            </Button>
+            {isMobile && (
+              <Button variant="ghost" size="sm" onClick={close}>
+                <X className="h-4 w-4" />
+              </Button>
+            )}
           </div>
         </div>
       </SidebarHeader>
@@ -51,13 +60,13 @@ export function DashboardSidebar() {
               <TabsTrigger value="unreviewed">Unreviewed</TabsTrigger>
             </TabsList>
             <TabsContent value="my-patients" className="mt-2">
-              <PatientList filter="my-patients" />
+              <PatientList filter="my-patients" onPatientSelect={isMobile ? close : undefined} />
             </TabsContent>
             <TabsContent value="high-risk" className="mt-2">
-              <PatientList filter="high-risk" />
+              <PatientList filter="high-risk" onPatientSelect={isMobile ? close : undefined} />
             </TabsContent>
             <TabsContent value="unreviewed" className="mt-2">
-              <PatientList filter="unreviewed" />
+              <PatientList filter="unreviewed" onPatientSelect={isMobile ? close : undefined} />
             </TabsContent>
           </Tabs>
         </SidebarGroup>
@@ -68,7 +77,12 @@ export function DashboardSidebar() {
             <SidebarMenu>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <button onClick={() => router.push("/dashboard/patients")}>
+                  <button
+                    onClick={() => {
+                      router.push("/dashboard/patients")
+                      if (isMobile) close()
+                    }}
+                  >
                     <Users className="h-4 w-4" />
                     <span>All Patients</span>
                   </button>
@@ -76,7 +90,12 @@ export function DashboardSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <button onClick={() => router.push("/dashboard/alerts")}>
+                  <button
+                    onClick={() => {
+                      router.push("/dashboard/alerts")
+                      if (isMobile) close()
+                    }}
+                  >
                     <AlertTriangle className="h-4 w-4" />
                     <span>Critical Alerts</span>
                   </button>
@@ -84,7 +103,12 @@ export function DashboardSidebar() {
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
-                  <button onClick={() => router.push("/dashboard/reports")}>
+                  <button
+                    onClick={() => {
+                      router.push("/dashboard/reports")
+                      if (isMobile) close()
+                    }}
+                  >
                     <FileText className="h-4 w-4" />
                     <span>Reports</span>
                   </button>
@@ -94,7 +118,6 @@ export function DashboardSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      {/* Update the SidebarFooter to use the practitioner's name */}
       <SidebarFooter className="p-4">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center text-white">

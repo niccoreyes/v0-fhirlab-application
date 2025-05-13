@@ -10,9 +10,10 @@ import type { PatientSummary } from "@/lib/types"
 
 interface PatientListProps {
   filter?: "my-patients" | "high-risk" | "unreviewed"
+  onPatientSelect?: () => void
 }
 
-export function PatientList({ filter = "my-patients" }: PatientListProps) {
+export function PatientList({ filter = "my-patients", onPatientSelect }: PatientListProps) {
   const [patients, setPatients] = useState<PatientSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -36,6 +37,14 @@ export function PatientList({ filter = "my-patients" }: PatientListProps) {
 
     loadPatients()
   }, [filter])
+
+  const handlePatientClick = (patientId: string) => {
+    router.push(`/dashboard/patient/${patientId}`)
+    // Close sidebar on mobile if callback provided
+    if (onPatientSelect) {
+      onPatientSelect()
+    }
+  }
 
   if (loading) {
     return (
@@ -78,7 +87,7 @@ export function PatientList({ filter = "my-patients" }: PatientListProps) {
         <button
           key={patient.id}
           className="w-full flex items-start gap-3 p-2 hover:bg-gray-100 rounded-md text-left transition-colors"
-          onClick={() => router.push(`/dashboard/patient/${patient.id}`)}
+          onClick={() => handlePatientClick(patient.id)}
         >
           <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 flex-shrink-0">
             {patient.name.given[0]?.[0] || ""}
@@ -94,7 +103,7 @@ export function PatientList({ filter = "my-patients" }: PatientListProps) {
               </span>
             </div>
             <p className="text-sm text-gray-600 truncate">{patient.lastMessage || "No recent messages"}</p>
-            <div className="flex gap-1 mt-1">
+            <div className="flex gap-1 mt-1 flex-wrap">
               {patient.unreadLabs && (
                 <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-800 border-yellow-200">
                   Unread Lab
