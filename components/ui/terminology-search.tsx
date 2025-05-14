@@ -87,9 +87,7 @@ export function TerminologySearch({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className={cn("w-full justify-between", className, {
-              "border-red-500": required && !value,
-            })}
+            className={"w-full justify-between"}
             disabled={disabled}
           >
             {value ? value.display : placeholder}
