@@ -2,8 +2,9 @@
 
 A modern, chat-based orchestration platform for FHIR clinical workflows, designed to unify patient care, streamline clinical actions, and integrate seamlessly with FHIRLAB's Terminology Server and a HAPI FHIR server. The whole app was generated 80% on v0 as a proof of concept about VibeCoding on FHIR
 
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/niccoreyes-projects/v0-ehr-system-design)
+[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://v0-ehr-system-design-six.vercel.app/)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/3z8M8UeDhxn)
+
 ---
 
 ## Overview
