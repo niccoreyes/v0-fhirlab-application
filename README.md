@@ -134,8 +134,8 @@ graph TD
         D[Terminology Search]
     end
     subgraph Backend Services
-        E[HAPI FHIR Server<br/>https://cdr.fhirlab.net/fhir]
-        F[Terminology Server<br/>https://tx.fhirlab.net/fhir]
+        E[HAPI FHIR Server<br/>"https://cdr.fhirlab.net/fhir"]
+        F[Terminology Server<br/>"https://tx.fhirlab.net/fhir"]
     end
     A -- "FHIR REST API" --> E
     B -- "FHIR REST API" --> E
