@@ -127,7 +127,7 @@ The application is structured as a Next.js (React) frontend, orchestrating clini
 
 ```mermaid
 graph TD
-    subgraph Frontend (Next.js)
+    subgraph Frontend Next.js
         A[Patient Chat UI]
         B[Clinical Action Forms]
         C[Summary View]
