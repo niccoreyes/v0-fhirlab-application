@@ -3,7 +3,7 @@
 const TERMINOLOGY_SERVER_URL = "https://tx.fhirlab.net/fhir"
 
 // SNOMED CT ValueSet URI - specific version as requested
-const SNOMED_CT_VALUESET_URI = "http://hl7.org/fhir/ValueSet/diagnostic-based-on-snomed"
+const SNOMED_CT_VALUESET_URI = "http://hl7.org/fhir/ValueSet/condition-code"
 const SNOMED_CT_SYSTEM = "http://snomed.info/sct"
 
 // Types for terminology responses
