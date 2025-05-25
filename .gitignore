@@ -25,6 +25,3 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-
-#bun issue to v0; just keep it local
-bun.lock

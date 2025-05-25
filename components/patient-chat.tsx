@@ -594,9 +594,9 @@ export function PatientChat({ patientId }: PatientChatProps) {
 
   // Render the chat interface
   const renderChatContent = () => (
-    <div className="flex-1 flex flex-col h-full w-full">
-      <ScrollArea className="flex-1 p-4 w-full">
-        <div className="space-y-4 pb-4 w-full">
+    <div className="flex-1 flex flex-col h-full">
+      <ScrollArea className="flex-1 p-4">
+        <div className="space-y-4 pb-4">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -610,7 +610,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
             >
               {message.type === "text" ? (
                 <div
-                  className={`w-full md:w-auto max-w-[85%] md:max-w-[70%] rounded-lg p-3 ${
+                  className={`max-w-[85%] md:max-w-[70%] rounded-lg p-3 ${
                     message.sender === "patient"
                       ? "bg-gray-100 text-gray-900"
                       : message.sender === "practitioner"
@@ -627,7 +627,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   <p className="text-xs mt-1 opacity-70">{format(new Date(message.timestamp), "h:mm a")}</p>
                 </div>
               ) : message.type === "observation" ? (
-                <Card className="w-full md:w-auto max-w-[85%]">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Activity className="h-4 w-4 mr-1" />
@@ -642,7 +642,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   </CardContent>
                 </Card>
               ) : message.type === "medication" ? (
-                <Card className="w-full md:w-auto max-w-[85%]">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Pill className="h-4 w-4 mr-1" />
@@ -657,7 +657,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   </CardContent>
                 </Card>
               ) : message.type === "condition" ? (
-                <Card className="w-full md:w-auto max-w-[85%]">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Stethoscope className="h-4 w-4 mr-1" />
@@ -672,7 +672,7 @@ export function PatientChat({ patientId }: PatientChatProps) {
                   </CardContent>
                 </Card>
               ) : message.type === "appointment" ? (
-                <Card className="w-full md:w-auto max-w-[85%]">
+                <Card className="w-full max-w-[85%] md:max-w-md">
                   <CardHeader className="py-2 px-3">
                     <CardTitle className="text-sm font-medium flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
@@ -694,21 +694,21 @@ export function PatientChat({ patientId }: PatientChatProps) {
       </ScrollArea>
 
       {/* Desktop form display */}
-      <div className="hidden md:block w-full">
-        {activeForm && <div className="p-4 border-t bg-gray-50 w-full">{renderActiveForm()}</div>}
+      <div className="hidden md:block">
+        {activeForm && <div className="p-4 border-t bg-gray-50">{renderActiveForm()}</div>}
       </div>
 
       {/* Mobile form display using Sheet */}
       <Sheet open={isMobileFormOpen} onOpenChange={setIsMobileFormOpen}>
-        <SheetContent side="bottom" className="h-[80vh] md:hidden w-full">
-          <div className="h-full overflow-auto w-full">{renderActiveForm()}</div>
+        <SheetContent side="bottom" className="h-[80vh] md:hidden">
+          <div className="h-full overflow-auto">{renderActiveForm()}</div>
         </SheetContent>
       </Sheet>
 
-      <div className="p-4 border-t bg-white w-full">
+      <div className="p-4 border-t bg-white">
         {activeForm === null && (
           <>
-            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 touch-pan-x w-full">
+            <div className="flex gap-2 mb-2 overflow-x-auto pb-2 touch-pan-x">
               <Button
                 variant="outline"
                 size="sm"
@@ -758,12 +758,12 @@ export function PatientChat({ patientId }: PatientChatProps) {
                 <span className="whitespace-nowrap">Schedule Appointment</span>
               </Button>
             </div>
-            <form onSubmit={handleSendMessage} className="flex gap-2 w-full">
+            <form onSubmit={handleSendMessage} className="flex gap-2">
               <Textarea
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder="Type a message..."
-                className="min-h-10 max-h-32 w-full"
+                className="min-h-10 max-h-32"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault()
